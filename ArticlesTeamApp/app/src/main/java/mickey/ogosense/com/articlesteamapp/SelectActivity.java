@@ -1,7 +1,10 @@
 package mickey.ogosense.com.articlesteamapp;
 
+import android.content.Context;
 import android.content.Intent;
 import android.database.DataSetObserver;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,6 +16,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,6 +37,8 @@ public class SelectActivity extends AppCompatActivity {
     public String articleTitle = "";
     public String articleId = "";
     public int uid = 0;
+    int responseCode = 0;
+    boolean isConnected;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +48,8 @@ public class SelectActivity extends AppCompatActivity {
         uid = extras.getInt("uid");
 
         new MyTask().execute();
+
+
     }
 
     public class MyTask extends AsyncTask<Void, Void, String> {
@@ -62,12 +70,41 @@ public class SelectActivity extends AppCompatActivity {
                     articleArray.add(title);
                     articleIds.add(id);
                     features.add(feature);
+
+                    ListView articlesList = (ListView)findViewById(R.id.listViewArticles);
+                    String[] articles = new String[articleArray.size()];
+                    for (int j = 0; j < articleArray.size(); j ++) {
+                        articles[j] = articleArray.get(j);
+
+                    }
+                    ArrayAdapter adapter = new ArrayAdapter<String>(SelectActivity.this, android.R.layout.simple_list_item_1, articles);
+
+
+                    articlesList.setAdapter(adapter);
+                    articlesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                        @Override
+                        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                            articleTitle = articleArray.get(position);
+                            articleId = articleIds.get(position);
+                            if(responseCode != 200){
+                                Toast.makeText(SelectActivity.this, "There is a problem with server.", Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            if (isConnected == false) {
+                                Toast.makeText(SelectActivity.this, "There is a problem with connection.", Toast.LENGTH_LONG).show();
+                                return;
+                            }
+                            Intent intent = new Intent(SelectActivity.this, ArticleActivity.class);
+                            intent.putExtra("title", articleTitle);
+                            intent.putExtra("id", articleId);
+                            startActivity(intent);
+                        }
+                    });
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
-
         @Override
         protected String doInBackground(Void... g) {
 
@@ -75,6 +112,13 @@ public class SelectActivity extends AppCompatActivity {
             try {
                 JSONObject jsonUid = new JSONObject();
                 jsonUid.put("uid", uid);
+
+                ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+
+                NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                isConnected = activeNetwork != null &&
+                        activeNetwork.isConnectedOrConnecting();
+                System.out.println(isConnected);
 
                 URL url = new URL("http://android.ogosense.net/interns/ace/articles.php");
                 HttpURLConnection connection = (HttpURLConnection)url.openConnection();
@@ -85,6 +129,9 @@ public class SelectActivity extends AppCompatActivity {
                 dos.writeBytes(jsonUid.toString());
                 dos.flush();
                 dos.close();
+
+                responseCode = connection.getResponseCode();
+                System.out.println(responseCode);
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 String data = "";
@@ -105,27 +152,7 @@ public class SelectActivity extends AppCompatActivity {
 
 
     public void getArticles(View v){
-        ListView articlesList = (ListView)findViewById(R.id.listViewArticles);
-        String[] articles = new String[articleArray.size()];
-        for (int i = 0; i < articleArray.size(); i ++) {
-            articles[i] = articleArray.get(i);
 
-        }
-        ArrayAdapter adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, articles);
-
-
-        articlesList.setAdapter(adapter);
-        articlesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                articleTitle = articleArray.get(position);
-                articleId = articleIds.get(position);
-                Intent intent = new Intent(SelectActivity.this, ArticleActivity.class);
-                intent.putExtra("title", articleTitle);
-                intent.putExtra("id", articleId);
-                startActivity(intent);
-            }
-        });
 
     }
 }

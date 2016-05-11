@@ -13,15 +13,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/listViewArticles"
-        android:layout_below="@+id/buttonGetArticles"
-        android:layout_alignParentEnd="true" />
+        />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Get the Articles"
-        android:id="@+id/buttonGetArticles"
-        android:onClick="getArticles"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true" />
 </RelativeLayout>
